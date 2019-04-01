@@ -16,6 +16,13 @@ export class HomeComponent implements OnInit {
     account: Account;
     modalRef: NgbModalRef;
     classeNameNeedToReg: string;
+    courses: CourseDto[] = [];
+    coursesWithTN: CourseWithTNDto[] = [];
+    coursesRegistered: CourseDto[] = [];
+    classNameAdded: string;
+    classLocation: string;
+    classTeacherID: number;
+    classContent: string;
 
     constructor(
         private principal: Principal,
@@ -23,10 +30,6 @@ export class HomeComponent implements OnInit {
         private eventManager: JhiEventManager,
         private courseService: CourseService
     ) {}
-
-    courses: CourseDto[] = [];
-
-    coursesWithTN: CourseWithTNDto[] = [];
 
     ngOnInit() {
         this.principal.identity().then(account => {
@@ -45,6 +48,16 @@ export class HomeComponent implements OnInit {
 
     isAuthenticated() {
         return this.principal.isAuthenticated();
+    }
+
+    isAdmin() {
+        for (const a of this.account.authorities) {
+            if (a === 'ROLE_ADMIN') {
+                return true;
+            }
+        }
+        return false;
+        // return this.principal.isTeacher();
     }
 
     login() {
@@ -77,5 +90,61 @@ export class HomeComponent implements OnInit {
 
     clearAllCourses() {
         this.courses = [];
+    }
+
+    getAllCourseRegistered() {
+        this.courseService.getCourseRegistered().subscribe(curDto => {
+            if (!curDto) {
+                this.coursesRegistered = [];
+            } else {
+                this.coursesRegistered = curDto;
+            }
+        });
+    }
+
+    registerCourse(courseName: String) {
+        this.courseService.registerCourse(courseName).subscribe(response => {
+            if (response.ok === false) {
+                return;
+            }
+            this.getAllCourseRegistered();
+        });
+    }
+
+    dropCourse(courseName: String) {
+        this.courseService.dropCourse(courseName).subscribe(response => {
+            if (response.ok === false) {
+                return;
+            }
+            this.getAllCourseRegistered();
+        });
+    }
+
+    addCourse() {
+        const courseAdd: CourseDto = {
+            courseName: this.classNameAdded,
+            courseLocation: this.classLocation,
+            courseContent: this.classContent,
+            teacherId: this.classTeacherID
+        };
+        this.courseService.addCourse(courseAdd).subscribe(response => {
+            if (response.ok === false) {
+                return;
+            }
+            this.getAllCourses();
+            this.classNameAdded = null;
+            this.classLocation = null;
+            this.classContent = null;
+            this.classTeacherID = null;
+        });
+    }
+
+    deleteCourse(courseName: string) {
+        this.courseService.deleteCourse(courseName).subscribe(response => {
+            if (response.ok === false) {
+                return;
+            }
+            this.getAllCourses();
+        });
     }
 }

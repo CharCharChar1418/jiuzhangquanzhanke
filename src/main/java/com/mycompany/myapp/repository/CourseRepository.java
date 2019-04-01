@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.Cacheable;
+import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,5 +25,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<CourseWithTNDto> findAllCoursesDtoWithTeacherName();
 
     Optional<Course> findCourseByCourseName(String courseName);
+    Optional<Course> findCourseByTeacherId(Long id);
+
 
 }

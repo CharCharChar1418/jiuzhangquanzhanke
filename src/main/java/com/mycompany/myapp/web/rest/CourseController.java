@@ -43,6 +43,12 @@ public class CourseController {
         return new ResponseEntity<>(allCourses, HttpStatus.OK);
     }
 
+    @GetMapping(path = "/api/course/allRegisteredCourses", produces = "application/json")
+    public HttpEntity<List<CourseDto>> findAllCoursesRegistered() {
+        List<CourseDto> allCoursesRegistered = courseService.findAllCoursesRegistered();
+        return new ResponseEntity<>(allCoursesRegistered, HttpStatus.OK);
+    }
+
     @PostMapping(path = "/api/course/registerCourse/{courseName}", produces = "application/json")
     public HttpStatus registerCourse(@PathVariable String courseName) {
         try {
@@ -73,10 +79,20 @@ public class CourseController {
         }
     }
 
-    @DeleteMapping(path = "/api/course/deleteCourse/{courseName}", produces = "application/js")
+    @DeleteMapping(path = "/api/course/deleteCourse/{courseName}", produces = "application/json")
     public HttpStatus deleteCourse(@NotNull @PathVariable("courseName") String courseName) {
         try {
             courseService.deleteCourse(courseName);
+            return HttpStatus.OK;
+        } catch (Exception e) {
+            return HttpStatus.BAD_REQUEST;
+        }
+    }
+
+    @DeleteMapping(path = "/api/course/dropCourse/{courseName}", produces = "application/json")
+    public HttpStatus dropCourse(@NotNull @PathVariable("courseName") String courseName) {
+        try {
+            courseService.dropCourse(courseName);
             return HttpStatus.OK;
         } catch (Exception e) {
             return HttpStatus.BAD_REQUEST;

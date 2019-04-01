@@ -7,6 +7,7 @@ import com.mycompany.myapp.domain.dto.CourseDto;
 import com.mycompany.myapp.domain.dto.CourseWithTNDto;
 import com.mycompany.myapp.repository.CourseRepository;
 import com.mycompany.myapp.repository.UserCourseRepository;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi;
 import org.checkerframework.checker.units.qual.A;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,16 +56,40 @@ public class CourseService {
         return courseRepository.findAllCoursesDtoWithTeacherName();
     }
 
+    public List<CourseDto> findAllCoursesRegistered() {
+        Optional<User> user = userService.getUserWithAuthorities();
+        List<UserCourse> courses = userCourseRepository.findAllByUser(user.get());
+        List<CourseDto> courseDtos = new ArrayList<>();
+
+        for (UserCourse uc: courses) {
+            Course course = uc.getCourse();
+            courseDtos.add(CourseDto.builder()
+                            .courseName(course.getCourseName())
+                            .courseContent(course.getCourseContent())
+                            .courseLocation(course.getCourseLocation())
+                            .teacherId(course.getTeacherId())
+                            .build());
+        }
+
+        return courseDtos;
+    }
+
 
     public void registerCourse(String courseName) throws Exception{
         Optional<User> curUser = userService.getUserWithAuthorities();
         Optional<Course> curCourse = courseRepository.findCourseByCourseName(courseName);
 
         if (curUser.isPresent() && curCourse.isPresent()){
-            userCourseRepository.save(UserCourse.builder()
-                .user(curUser.get())
-                .course(curCourse.get())
-                .build());
+            List<UserCourse> userCourses = userCourseRepository.findAllByUserAndCourse(curUser.get(), curCourse.get());
+            if (userCourses.isEmpty()) {
+                userCourseRepository.save(UserCourse.builder()
+                    .user(curUser.get())
+                    .course(curCourse.get())
+                    .build());
+            } else {
+                throw new Exception("Course registered");
+            }
+
         } else {
             throw new Exception("UnExpected Exception");
         }
@@ -73,14 +98,14 @@ public class CourseService {
     public void addCourse(CourseDto course) throws Exception{
         Optional<Course> courseDto = courseRepository.findCourseByCourseName(course.getCourseName());
 
-        if(courseDto.isPresent()){
+        if (courseDto.isPresent()){
             throw new Exception("Course is existing.");
         }
 
         Course courseBeingSaved = Course.builder()
             .courseName(course.getCourseName())
             .courseContent(course.getCourseContent())
-            .courseLocation(course.getCourseContent())
+            .courseLocation(course.getCourseLocation())
             .teacherId(course.getTeacherId())
             .build();
 
@@ -94,9 +119,14 @@ public class CourseService {
 
     public void deleteCourse(String courseName) throws Exception{
         Optional<Course> OptionalExistingCourse = courseRepository.findCourseByCourseName(courseName);
+        Optional<User> curUser = userService.getUserWithAuthorities();
 
         if(!OptionalExistingCourse.isPresent()){
-            throw new Exception("Course is not exist.");
+            throw new Exception("Course does not exist.");
+        }
+
+        if (curUser.isPresent() && curUser.get().getId() != OptionalExistingCourse.get().getTeacherId()) {
+            throw new Exception("Have no authority to delete");
         }
 
         try {
@@ -119,6 +149,19 @@ public class CourseService {
         existingCourse.setCourseLocation(course.getCourseLocation());
         existingCourse.setCourseName(course.getCourseName());
         existingCourse.setTeacherId(course.getTeacherId());
+
+    }
+
+    public void dropCourse(String courseName) throws Exception {
+        Optional<User> user = userService.getUserWithAuthorities();
+        Optional<Course> course = courseRepository.findCourseByCourseName(courseName);
+
+        Optional<UserCourse> userCourse = userCourseRepository.findUserCourseByUserAndCourse(user.get(), course.get());
+        try {
+            userCourseRepository.delete(userCourse.get());
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
 
     }
 }

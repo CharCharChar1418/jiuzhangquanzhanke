@@ -7,6 +7,7 @@ export class Principal {
     private userIdentity: any;
     private authenticated = false;
     private authenticationState = new Subject<any>();
+    private isAdmin = false;
 
     constructor(private account: AccountService) {}
 
@@ -34,17 +35,34 @@ export class Principal {
         return false;
     }
 
-    hasAuthority(authority: string): Promise<boolean> {
+    // hasAuthority(authority: string): Promise<boolean> {
+    //     if (!this.authenticated) {
+    //         return Promise.resolve(false);
+    //     }
+    //
+    //     return this.identity().then(
+    //         id => {
+    //             return Promise.resolve(id.authorities && id.authorities.includes(authority));
+    //         },
+    //         () => {
+    //             return Promise.resolve(false);
+    //         }
+    //     );
+    // }
+
+    hasAuthority(authority: string) {
         if (!this.authenticated) {
-            return Promise.resolve(false);
+            this.isAdmin = false;
         }
 
         return this.identity().then(
             id => {
-                return Promise.resolve(id.authorities && id.authorities.includes(authority));
+                let promise = Promise.resolve(id.authorities && id.authorities.includes(authority));
+                promise.then(value => (this.isAdmin = value));
             },
             () => {
-                return Promise.resolve(false);
+                let promoise = Promise.resolve(false);
+                promoise.then(value => (this.isAdmin = value));
             }
         );
     }
@@ -90,7 +108,8 @@ export class Principal {
 
     // Please realize this method
     isTeacher(): boolean {
-        return false;
+        this.hasAuthority('ROLE_ADMIN');
+        return this.isAdmin;
     }
 
     // Please realize this method
